@@ -2,7 +2,7 @@
 TARGET_EXEC := braw-decode
 
 BUILD_DIR := ./build
-SRC_DIRS := ./src
+SRC_DIRS := ./
 
 # Find all the C and C++ files we want to compile
 # Note the single quotes around the * expressions. Make will incorrectly expand these otherwise.
@@ -27,22 +27,22 @@ CPPFLAGS := $(INC_FLAGS) -MMD -MP
 
 # The final build step.
 $(BUILD_DIR)/$(TARGET_EXEC): $(OBJS)
-    $(CC) $(OBJS) -o $@ $(LDFLAGS)
+	$(CXX) $(OBJS) -o $@ $(LDFLAGS)
 
 # Build step for C source
 $(BUILD_DIR)/%.c.o: %.c
-    mkdir -p $(dir $@)
-    $(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@
+	mkdir -p $(dir $@)
+	$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@
 
 # Build step for C++ source
 $(BUILD_DIR)/%.cpp.o: %.cpp
-    mkdir -p $(dir $@)
-    $(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
+	mkdir -p $(dir $@)
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
 
 
 .PHONY: clean
 clean:
-    rm -r $(BUILD_DIR)
+	rm -r $(BUILD_DIR)
 
 # Include the .d makefiles. The - at the front suppresses the errors of missing
 # Makefiles. Initially, all the .d files will be missing, and we don't want those

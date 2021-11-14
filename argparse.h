@@ -42,27 +42,42 @@ function of class to return array of std::strings not associated with any flags
 
 */
 
+struct ARG
+{
+	char shorthand;
+	char longhand[24];
+	char description[256]; 
+};
 
 class ArgParse
 {
 	private:
-		char flagStart = "-";
-		int argc;
-		char *argv[];
+		char flagStart = '-';
+		int *argc;
+		char ***argv;
 		std::vector<std::string> args;
 
 		void unknownArg(std::string arg);
 
+		std::vector<ARG> flagArgs;
+		std::vector<bool *> flagValues;
+		std::vector<ARG> valueArgs;
+		std::vector<char **> valueValues;
+		std::vector<ARG> optionArgs;
+		std::vector<std::vector<std::vector<std::string>>> optionValues; // I am not proud of this.
+		std::vector<ARG> actionArgs;
+		std::vector<std::function<void ()>> actionValues;
+
 
 	public:
-		ArgParse(int argc, char *argv[]);
-		void addArgFlag(const char shorthand, const char longhand[], const char description[], bool *value);
-		void addArgValue(const char shorthand, const char longhand[], const char description[], char *value[]);
-		void addArgAction(const char shorthand, const char longhand[], const char description[], std::function<void ()> action );
-		void addArgOptions(const char shorthand, const char longhand[], const char description[], std::vector<std::vector<std::string>> options );
+		ArgParse(int *argc, char **argv[]);
+		void addArgFlag(ARG arg, bool *value);
+		void addArgValue(ARG arg, char *value[]);
+		void addArgAction(ARG arg, std::function<void ()> action );
+		void addArgOptions(ARG arg, std::vector<std::vector<std::string>> options );
 		std::vector<std::string> getArgsRemaining();
 		void printHelp();
 		void parse();
 
-}
+};
 
