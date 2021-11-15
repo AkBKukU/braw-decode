@@ -5,12 +5,15 @@ int main(int argc, char *argv[])
 {
 	std::cout << "Test" << std::endl ;
 
-	ArgParse args = ArgParse(&argc,&argv);
-	const char text[] = "This is some text";
-	ARG arg = {'f',"format","test"};
+	ArgParse args = ArgParse(argc,argv);
+	
 	bool farg = false;
 
-	args.addArgFlag((ARG){'f',"format","test"},&farg);
+	args.addArg((ARG){'f',"format","test"},&farg);
+
+	//std::cout << argc << " " << argv[1] << std::endl;
+	args.parse();
 
 	return 0;
 }
+

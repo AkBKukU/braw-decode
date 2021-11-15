@@ -1,6 +1,7 @@
 
 #include <functional>
 #include <string>
+#include <cstring>
 #include <iostream>
 #include <vector>
 
@@ -53,8 +54,8 @@ class ArgParse
 {
 	private:
 		char flagStart = '-';
-		int *argc;
-		char ***argv;
+		int argc;
+		char **argv;
 		std::vector<std::string> args;
 
 		void unknownArg(std::string arg);
@@ -68,13 +69,12 @@ class ArgParse
 		std::vector<ARG> actionArgs;
 		std::vector<std::function<void ()>> actionValues;
 
-
 	public:
-		ArgParse(int *argc, char **argv[]);
-		void addArgFlag(ARG arg, bool *value);
-		void addArgValue(ARG arg, char *value[]);
-		void addArgAction(ARG arg, std::function<void ()> action );
-		void addArgOptions(ARG arg, std::vector<std::vector<std::string>> options );
+		ArgParse(int argc, char *argv[]);
+		void addArg(ARG arg, bool *value);
+		void addArg(ARG arg, char *value[]);
+		void addArg(ARG arg, std::function<void ()> action );
+		void addArg(ARG arg, std::vector<std::vector<std::string>> options );
 		std::vector<std::string> getArgsRemaining();
 		void printHelp();
 		void parse();
