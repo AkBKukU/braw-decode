@@ -4,6 +4,8 @@
 #include <cstring>
 #include <iostream>
 #include <vector>
+#include <stdlib.h>
+#include <algorithm>
 
 /* arg types needed
 
@@ -46,8 +48,26 @@ function of class to return array of std::strings not associated with any flags
 struct ARG
 {
 	char shorthand;
-	char longhand[24];
-	char description[256]; 
+	std::string longhand;
+	std::string description; 
+};
+
+struct ARG_FLAG : ARG
+{
+	bool *value;
+};
+
+struct ARG_VALUE : ARG
+{
+	std::string *value;
+	bool strict = false;
+	std::vector<std::string> options;
+	std::vector<std::string> descriptions;
+};
+
+struct ARG_ACTION : ARG
+{
+	std::function<void ()> value;
 };
 
 class ArgParse
@@ -57,24 +77,28 @@ class ArgParse
 		int argc;
 		char **argv;
 		std::vector<std::string> args;
+		bool parsed = false;
 
 		void unknownArg(std::string arg);
+		bool checkArg(ARG arg, int iargs, bool action);
 
-		std::vector<ARG> flagArgs;
-		std::vector<bool *> flagValues;
-		std::vector<ARG> valueArgs;
-		std::vector<char **> valueValues;
-		std::vector<ARG> optionArgs;
-		std::vector<std::vector<std::vector<std::string>>> optionValues; // I am not proud of this.
-		std::vector<ARG> actionArgs;
-		std::vector<std::function<void ()>> actionValues;
+		std::vector<ARG_FLAG> flagArgs;
+		std::vector<ARG_VALUE> valueArgs;
+		std::vector<ARG_ACTION> actionArgs;
 
 	public:
+		std::string description;
+		std::string binName;
+
 		ArgParse(int argc, char *argv[]);
 		void addArg(ARG arg, bool *value);
-		void addArg(ARG arg, char *value[]);
+		void addArg(ARG arg, std::string *value);
+		void addArg(ARG arg, std::string *value,
+				std::vector<std::string> options);
+		void addArg(ARG arg, std::string *value,
+				std::vector<std::string> options,
+				std::vector<std::string> descriptions);
 		void addArg(ARG arg, std::function<void ()> action );
-		void addArg(ARG arg, std::vector<std::vector<std::string>> options );
 		std::vector<std::string> getArgsRemaining();
 		void printHelp();
 		void parse();
