@@ -2,7 +2,10 @@
 TARGET_EXEC := braw-decode
 
 BUILD_DIR := ./build
-SRC_DIRS := ./
+SRC_DIRS := ./src \
+            ./Include \
+            ./Libraries
+LDFLAGS = -lpthread -ldl
 
 # Find all the C and C++ files we want to compile
 # Note the single quotes around the * expressions. Make will incorrectly expand these otherwise.

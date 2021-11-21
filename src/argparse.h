@@ -1,4 +1,7 @@
 
+#ifndef ARGPARSE_H
+#define ARGPARSE_H
+
 #include <functional>
 #include <string>
 #include <cstring>
@@ -104,4 +107,6 @@ class ArgParse
 		void parse();
 
 };
+
+#endif
 
