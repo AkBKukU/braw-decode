@@ -183,6 +183,7 @@ Setting up the SDK
  4. Copy the contents of the Include and Libraries folders to the one for `braw-decode`
  
 You are now ready to build `braw-decode`. The only step needed is:
+
 ```
 make
 ```
