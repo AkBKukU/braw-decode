@@ -116,6 +116,12 @@ void ArgParse::parse()
 						--i;
 					}
 				}
+				// Remove arg if finished parsing
+				if(args[iarg].length() == 1)
+				{
+					args.erase(args.begin()+iarg);
+					--iarg;
+				}
 			}else{
 				// Arbitrarry data, do nothing
 			}

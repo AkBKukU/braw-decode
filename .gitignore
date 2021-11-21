@@ -2,3 +2,7 @@
 build/
 Libraries/
 Include/
+*.braw
+*.mov
+braw-decode
+

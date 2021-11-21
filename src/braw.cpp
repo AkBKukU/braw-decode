@@ -7,19 +7,22 @@ IBlackmagicRawFrame* frame)
 	BrawInfo* info = nullptr;
 	readJob->GetUserData((void**)&info);
 
+	frame->SetResourceFormat(info->resourceFormat);
+	frame->SetResolutionScale(info->resolutionScale);
+	
+	
 	IBlackmagicRawJob* decodeAndProcessJob = nullptr;
 	frame->CreateJobDecodeAndProcessFrame(nullptr, nullptr, &decodeAndProcessJob);
 
 	decodeAndProcessJob->SetUserData(info);
 
-	frame->SetResourceFormat(info->resourceFormat);
+	result = decodeAndProcessJob->Submit();
 
-	decodeAndProcessJob->Submit();
-
-	if (decodeAndProcessJob)
-		decodeAndProcessJob->Release();
-
-	delete info;
+	if (result != S_OK)
+	{
+		if (decodeAndProcessJob)
+			decodeAndProcessJob->Release();
+	}
 
 	readJob->Release();
 }
@@ -31,23 +34,27 @@ IBlackmagicRawProcessedImage* processedImage)
 	job->GetUserData((void**)&info);
 
 	if(info->verbose)
-		std::cerr << "BRAW Frame [" << info->frameIndex << "] \r";
+		std::cerr << "\rBRAW Frame/threads [" << info->frameIndex << "][" << info->threads << "] ";
 
+	if (info->infoPass)
+	{
+		processedImage->GetWidth(&info->width);
+		processedImage->GetHeight(&info->height);
+	}
+	
 	unsigned int size = 0;
 	void* imageData = nullptr;
-
-	processedImage->GetWidth(&info->width);
-	processedImage->GetHeight(&info->height);
 	processedImage->GetResource(&imageData);
 	processedImage->GetResourceSizeBytes(&size);
 
 	// Print out image data
-	std::cout.write(reinterpret_cast<char*>(imageData), size); 
-
-	delete info;
+	if (!info->infoPass)
+		std::cout.write(reinterpret_cast<char*>(imageData), size); 
 
 	job->Release();
-	info->threads--;
+
+	if (!info->infoPass)
+		info->threads--;
 }
 
 Braw::Braw()
@@ -57,25 +64,100 @@ Braw::Braw()
 
 Braw::~Braw()
 {
+	codec->FlushJobs();
+
+	if (clip != nullptr)
+		clip->Release();
+
+	if (codec != nullptr)
+		codec->Release();
+
+	if (factory != nullptr)
+		factory->Release();
 }
 
 void Braw::openFile(std::string filepath)
 {
-	factory = CreateBlackmagicRawFactoryInstanceFromPath("../Libraries/");
+	// Store file
+	info->filename = filepath;
+
+	// Setup BRAW SDK
+	factory = CreateBlackmagicRawFactoryInstanceFromPath(lib);
 	factory->CreateCodec(&codec);
 	const char *c = info->filename.c_str();
 	codec->OpenClip(c, &clip);
 	codec->SetCallback(&frameProcessor);
 
-	clip->GetFrameCount(&info->frameCount);
+	clip->GetFrameCount(&(info->frameCount));
 	clip->GetFrameRate(&info->framerate);
 
+	if(frameOut == 0)
+		frameOut = info->frameCount;
+
+	IBlackmagicRawJob* jobRead = nullptr;
+	clip->CreateJobReadFrame(info->frameIndex, &jobRead);
+	jobRead->SetUserData(info);
+	HRESULT result;
+	result = jobRead->Submit();
+
+        if (result != S_OK)
+        {
+            if (jobRead != nullptr)
+                jobRead->Release();
+        }
+	codec->FlushJobs();
+
+	info->infoPass = false;
+
+	if (clipInfo)
+	{
+		printInfo();
+		return;
+	}else if (ffPrint)
+	{
+		printFFFormat();
+		return;
+	}else{
+		decode();
+	}
+}
+
+void Braw::decode()
+{
+	info->frameIndex = frameIn;
+
+	if(info->verbose)
+		std::cerr << "Begining decode of " << frameIn << "-" << frameOut << std::endl;
 	
+	while (info->frameIndex < frameOut)
+	{
+		if (info->threads >= maxThreads)
+		{
+			std::this_thread::sleep_for(std::chrono::microseconds(50));
+			continue;
+		}
+
+		IBlackmagicRawJob* jobRead = nullptr;
+		clip->CreateJobReadFrame(info->frameIndex, &jobRead);
+		jobRead->SetUserData(info);
+		HRESULT result;
+		result = jobRead->Submit();
+
+		if (result != S_OK)
+		{
+		    if (jobRead != nullptr)
+			jobRead->Release();
+		}
+
+		info->threads++;
+		info->frameIndex++;
+	}
 }
 
 void Braw::addArgs(ArgParse *parser)
 {	
 	parser->addArg(argColorFormat,&rawColorFormat,argColorFormatOptions,argColorFormatDescriptions);
+	parser->addArg(argMaxThreads,&rawMaxThreads);
 	parser->addArg(argFrameIn,&rawFrameIn);
 	parser->addArg(argFrameOut,&rawFrameOut);
 	parser->addArg(argScale,&rawScale,argScaleOptions);
@@ -88,8 +170,11 @@ void Braw::validateArgs()
 {
 	try
 	{
+		maxThreads = std::stoi(rawMaxThreads);
 		frameIn = std::stoi(rawFrameIn);
 		frameOut = std::stoi(rawFrameOut);
+		info->scale = std::stoi(rawScale);
+
 		// Get color format
 		info->resourceFormat = rawColorFormat == "rgba" ? blackmagicRawResourceFormatRGBAU8 : info->resourceFormat;
 		info->resourceFormat = rawColorFormat == "bgra" ? blackmagicRawResourceFormatBGRAU8 : info->resourceFormat;
@@ -109,4 +194,42 @@ void Braw::validateArgs()
 	}
 }
 
+void Braw::printInfo()
+{
+	std::cout << "Braw Decoder: Alpha" << std::endl;
+	std::cout << "File: " << info->filename << std::endl;
+	std::cout << "Resolution: " << info->width << "x" << info->height << std::endl;
+	std::cout << "Framerate: " << info->framerate << std::endl;
+	std::cout << "Frame Count: " << info->frameCount << std::endl;
+	std::cout << "Scale: " << info->scale << std::endl;
+}
+
+void Braw::printFFFormat()
+{
+	std::string ffmpegInputFormat = "-f rawvideo -pixel_format ";
+	ffmpegInputFormat += info->resourceFormat == blackmagicRawResourceFormatRGBAU8 ? "rgba" : "";
+	ffmpegInputFormat += info->resourceFormat == blackmagicRawResourceFormatBGRAU8 ? "bgra" : "";
+	ffmpegInputFormat += info->resourceFormat == blackmagicRawResourceFormatRGBU16 ? "rgb48le" : "";
+	ffmpegInputFormat += info->resourceFormat == blackmagicRawResourceFormatRGBU16Planar ? "gbrp16le" : "";
+	if (info->resourceFormat == blackmagicRawResourceFormatRGBF32 ||
+		info->resourceFormat == blackmagicRawResourceFormatRGBF32Planar ||
+		info->resourceFormat == blackmagicRawResourceFormatBGRAF32 )
+	{
+		std::cerr << "FFmpeg format unknown for: " << rawColorFormat << std::endl;
+		std::exit(1);
+	}
+
+	ffmpegInputFormat += " -s ";
+	ffmpegInputFormat += std::to_string(info->width);
+	ffmpegInputFormat += "x";
+	ffmpegInputFormat += std::to_string(info->height);
+	ffmpegInputFormat += " -r ";
+	ffmpegInputFormat += std::to_string(info->framerate);
+	ffmpegInputFormat += " -i pipe:0 ";
+	
+	if (info->resourceFormat == blackmagicRawResourceFormatRGBU16Planar)
+		ffmpegInputFormat += "-filter:v colorchannelmixer=0:1:0:0:0:0:1:0:1:0:0:0 ";
+
+	std::cout << ffmpegInputFormat;
+}
 

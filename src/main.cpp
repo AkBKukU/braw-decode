@@ -22,11 +22,22 @@ int main(int argc, char *argv[])
 	Braw braw_decoder;
 	braw_decoder.addArgs(args);
 
-	args->description = "BRAW file decoder\n\r";
+	args->description = "BRAW file decoder\n\rUsage: braw-decode sample.braw | ffmpeg -y $(braw-decode -f sample.braw) -c:v hevc_nvenc output.mov";
 
 	args->addArg((ARG){'h',"help","Print help text"},&help);
 	args->parse();
 	braw_decoder.validateArgs();
+	std::vector<std::string> files = args->getArgsRemaining();
+	if(files.size() == 1)
+	{
+		braw_decoder.openFile(files[0]);
+	}else{
+		std::cerr << "Too many files provided" << std::endl;
+		for(int i = 0; i != files.size(); ++i)
+		{
+			std::cerr << "[" << i << "] " << files[i] << std::endl;
+		}
+	}
 
 	return 0;
 }
