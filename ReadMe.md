@@ -10,20 +10,31 @@ into other file formats.
 I'll start right off by showing you some examples of how the 
 `braw-decode` program may be used.
 
-Generate proxy editing files:
+###Generate 36Mbps DNxHD 1080p proxy editing files for Davinci Resolve:###
 
 ```
-braw-decode -s 2 sample.braw | ffmpeg -y -i sample.braw  $(braw-decode -s 2 -f sample.braw) \
--map 1:v:0 -map 0:a:0 -c:a copy \
--c:v dnxhd -vf "scale=1280:720,format=yuv422p" -b:v 60M  output.mov
+braw-decode -v -t 4 -c bgra sample.braw | ffmpeg -i sample.braw -thread_queue_size 20 $(braw-decode -c bgra -f sample.braw) \
+             -map 1:v:0 -map 0:a:0 -c:a copy \
+             -c:v dnxhd -vf "scale=1920:1080,format=yuv422p" -b:v 36M "$(basename -s .braw "sample.braw").mov"
 ```
+**Note:***There is something odd with DNxHD's color format but using `bgra` as te source fixes it which is fine anyway because it's a smaller data format*
 
-Convert to 10b 32Mbps h265 for archiving using NVENC using 16 bit source:
+###Convert to 10b 32Mbps h265 for archiving using NVENC using 16 bit source:###
 
 ```
 braw-decode -v -c 16pl sample.braw | ffmpeg -y -i sample.braw $(braw-decode -c 16pl -f sample.braw) \
 -map 1:v:0 -map 0:a:0 -c:a copy \
 -c:v hevc_nvenc -b:v 32M -profile:v rext output.mov
+```
+
+
+As an aside, you can also copy the BRAW timecode by running `ffprobe` before on the BRAW file and then setting it with `ffmpeg`:
+```
+# timecode parsing line
+timecode="$(ffprobe $file 2>&1 | grep timecode | awk '{print $3}'| sed '1q;d')"
+
+             # ffmpeg line, can be used with proxies and archives
+             -timecode "$timecode" -metadata timecode="$timecode" \
 ```
 
 ## Usage
