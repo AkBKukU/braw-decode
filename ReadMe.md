@@ -17,7 +17,7 @@ braw-decode -v -t 4 -c bgra sample.braw | ffmpeg -i sample.braw -thread_queue_si
              -map 1:v:0 -map 0:a:0 -c:a copy \
              -c:v dnxhd -vf "scale=1920:1080,format=yuv422p" -b:v 36M "$(basename -s .braw "sample.braw").mov"
 ```
-**Note:** *There is something odd with DNxHD's color format but using `bgra` as te source fixes it which is fine anyway because it's a smaller data format*
+**Note:** *There is something odd with DNxHD's color format but using `bgra` as the source fixes it which is fine anyway because it's a smaller data format*
 
 ### Convert to 10b 32Mbps h265 for archiving using NVENC using 16 bit source:
 
