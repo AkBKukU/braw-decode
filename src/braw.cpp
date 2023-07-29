@@ -1,5 +1,45 @@
 #include "braw.h"
 
+// Returns the size in bytes required to store a single pixel of the format
+unsigned int getPixelSizeInBytes(BlackmagicRawResourceFormat resourceFormat) {
+	unsigned int size = 4;
+
+	switch (resourceFormat) {
+	case blackmagicRawResourceFormatRGBAU8:
+	case blackmagicRawResourceFormatBGRAU8:
+		// 4 color components * 1 byte
+		size = 4;
+		break;
+
+	case blackmagicRawResourceFormatRGBU16:
+	case blackmagicRawResourceFormatRGBU16Planar:
+		// 3 color components * 2 bytes
+		size = 6;
+		break;
+
+	case blackmagicRawResourceFormatRGBAU16:
+	case blackmagicRawResourceFormatBGRAU16:
+		// 4 color components * 2 bytes
+		size = 8;
+		break;
+
+	case blackmagicRawResourceFormatRGBF32:
+	case blackmagicRawResourceFormatRGBF32Planar:
+		// 3 color components * 4 bytes
+		size = 12;
+		break;
+
+	case blackmagicRawResourceFormatBGRAF32:
+		// 4 color components * 4 bytes
+		size = 16;
+		break;
+
+	default:
+		break;
+	}
+
+	return size;
+}
 
 void FrameProcessor::ReadComplete(IBlackmagicRawJob* readJob, HRESULT result,
 IBlackmagicRawFrame* frame)
@@ -36,16 +76,29 @@ IBlackmagicRawProcessedImage* processedImage)
 	if(info->verbose)
 		std::cerr << "\rBRAW Frame/threads [" << info->frameIndex << "][" << info->threads << "] ";
 
+	unsigned int width = 0;
+	unsigned int height = 0;
+	processedImage->GetWidth(&width);
+	processedImage->GetHeight(&height);
+
 	if (info->infoPass)
 	{
-		processedImage->GetWidth(&info->width);
-		processedImage->GetHeight(&info->height);
+		info->width = width;
+		info->height = height;
 	}
-	
-	unsigned int size = 0;
+
 	void* imageData = nullptr;
 	processedImage->GetResource(&imageData);
-	processedImage->GetResourceSizeBytes(&size);
+
+	// GetResource returns a buffer from the SDK that can contain some extra bytes, possibly
+	// because of memory alignment to certain byte boundaries. GetResourceSizeBytes returns
+	// the size of this buffer, and therefore does not reflect the actual image date bytes. So
+	// we need to calculate it manually (width * height * pixelSize), and use the exact image
+	// size for outputting the buffer to stdout.
+	BlackmagicRawResourceFormat format;
+	processedImage->GetResourceFormat(&format);
+	unsigned int pixelSize = getPixelSizeInBytes(format);
+	unsigned int size = width * height * pixelSize;
 
 	// Print out image data
 	if (!info->infoPass)
