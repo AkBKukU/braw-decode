@@ -111,7 +111,6 @@ Usage: braw-decode sample.braw | ffmpeg -y $(braw-decode -f sample.braw) -c:v he
         End frame index for decoding
  -s, --scale [VALUE]
         Scale input video down by this factor.
-        WARNING: Only the 8bit color formats at half scale seem to work
         Options:
                 1
                 2
@@ -150,15 +149,8 @@ based on my testing.
 #### Scale
 
 The scale option is handled by the SDK which is important because
-it means less data is sent over `stdout` improving performance. But
-in my testing the scale feature has issues with all color formats
-except the 8 bit ones and only 2 or half scaling works with that. As
-such I consider the scaling option really only usable for generating
-proxy files due to the lower quality, but this still has real world
-use so it has been left in.
-
-The remaining scale factors have been included in the program in the
-hopes that an updated SDK revision will correct the issues.
+it means less data is sent over `stdout` improving performance. It
+is also more performant than FFmpeg scaling.
 
 ## Decoding Compute Source and Platforms Supported
 

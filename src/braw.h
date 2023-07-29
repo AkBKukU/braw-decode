@@ -94,7 +94,7 @@ class Braw
 		std::string rawFrameIn = "0";
 		ARG argFrameOut = {'o',"out","End frame index for decoding"};
 		std::string rawFrameOut = "0";
-		ARG argScale = {'s',"scale", "Scale input video down by this factor.\n\r\tWARNING: Only the 8bit color formats at half scale seem to work"};
+		ARG argScale = {'s',"scale", "Scale input video down by this factor."};
 		std::vector<std::string> argScaleOptions = {"1","2","4","8"};
 		std::string rawScale = "1";
 		ARG argClipInfo = {'n',"info", "Print details of clip"};
