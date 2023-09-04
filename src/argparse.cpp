@@ -48,8 +48,6 @@ void ArgParse::printHelp()
 
 		}
 	}
-			
-	std::exit(0);
 }
 
 void ArgParse::parse()

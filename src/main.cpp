@@ -12,6 +12,7 @@ void test_func()
 void help()
 {
 	args->printHelp();
+	std::exit(0);
 }
 
 
