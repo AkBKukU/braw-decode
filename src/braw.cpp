@@ -117,7 +117,9 @@ Braw::Braw()
 
 Braw::~Braw()
 {
-	codec->FlushJobs();
+	if (codec) {
+		codec->FlushJobs();
+	}
 
 	if (clip != nullptr)
 		clip->Release();
