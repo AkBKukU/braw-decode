@@ -12,6 +12,7 @@ void test_func()
 void help()
 {
 	args->printHelp();
+	std::exit(0);
 }
 
 
@@ -30,13 +31,22 @@ int main(int argc, char *argv[])
 	std::vector<std::string> files = args->getArgsRemaining();
 	if(files.size() == 1)
 	{
-		braw_decoder.openFile(files[0]);
-	}else{
+		try {
+			braw_decoder.openFile(files[0]);
+		} catch (std::exception& e) {
+			std::cerr << "ERROR: " << e.what() << std::endl;
+			return 1;
+		}
+	} else if (files.size() == 0) {
+		std::cerr << "Missing input file argument" << std::endl;
+		return 1;
+	} else {
 		std::cerr << "Too many files provided" << std::endl;
 		for(int i = 0; i != files.size(); ++i)
 		{
 			std::cerr << "[" << i << "] " << files[i] << std::endl;
 		}
+		return 1;
 	}
 
 	return 0;

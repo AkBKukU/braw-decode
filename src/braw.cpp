@@ -117,7 +117,9 @@ Braw::Braw()
 
 Braw::~Braw()
 {
-	codec->FlushJobs();
+	if (codec) {
+		codec->FlushJobs();
+	}
 
 	if (clip != nullptr)
 		clip->Release();
@@ -136,9 +138,23 @@ void Braw::openFile(std::string filepath)
 
 	// Setup BRAW SDK
 	factory = CreateBlackmagicRawFactoryInstanceFromPath(lib);
+	if (factory == nullptr) {
+		throw std::runtime_error("Failed to initialize BRAW SDK");
+	}
 	factory->CreateCodec(&codec);
 	const char *c = info->filename.c_str();
-	codec->OpenClip(c, &clip);
+	HRESULT hr = codec->OpenClip(c, &clip);
+	if (hr == E_INVALIDARG) {
+		throw std::runtime_error("Invalid filename: " + filepath);
+	}
+	if (hr == E_FAIL) {
+		throw std::runtime_error("Failed to open clip. File might be corrupt");
+	}
+	if (hr != S_OK) {
+		std::stringstream ss;
+		ss << "Internal Braw error. HRESULT=" << hr;
+		throw std::runtime_error(ss.str());
+	}
 	codec->SetCallback(&frameProcessor);
 
 	clip->GetFrameCount(&(info->frameCount));
