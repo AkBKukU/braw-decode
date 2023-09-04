@@ -31,7 +31,12 @@ int main(int argc, char *argv[])
 	std::vector<std::string> files = args->getArgsRemaining();
 	if(files.size() == 1)
 	{
-		braw_decoder.openFile(files[0]);
+		try {
+			braw_decoder.openFile(files[0]);
+		} catch (std::exception& e) {
+			std::cerr << "ERROR: " << e.what() << std::endl;
+			return 1;
+		}
 	} else if (files.size() == 0) {
 		std::cerr << "Missing input file argument" << std::endl;
 		return 1;
